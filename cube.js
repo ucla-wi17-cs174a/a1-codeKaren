@@ -3,7 +3,6 @@
 var canvas;
 var gl;
 
-//var NumVertices = 36;  // need 36 vertices to draw cube since 6 sides with 2 triangles (3 vertices each)
 var NumVertices = 14;  // need 14 vertices to draw cube since using triangle strip
 var NumOutlinePoints = 24; 
 
@@ -252,18 +251,6 @@ window.onload = function init()   // this is like int main() in C
     render(0);
 }
 
-// generate the vertices to fill in the points array
-// function generateCube()
-// {
-//     // must traverse the faces of the cube following the right hand rule
-//     quad( 1, 0, 3, 2 );
-//     quad( 2, 3, 7, 6 );
-//     quad( 3, 0, 4, 7 );
-//     quad( 6, 5, 1, 2 );
-//     quad( 4, 5, 6, 7 );
-//     quad( 5, 4, 0, 1 );
-// }
-
 // generate vertices for the cube points using triangle strip (14 points total)
 function generateCube() {
     var vertexTriangleStripOrder = [6, 5, 2, 1, 0, 5, 4, 6, 7, 2, 3, 0, 7, 4];
@@ -296,21 +283,6 @@ function generateCubeOutline() {
         outlinePoints.push(vertices[k+4]);
     }
 }
-
-// function quad(a, b, c, d )  // will be called 6 times, since 6 sides of a cube
-// {
-//     // We need to partition the quad into two triangles in order for
-//     // WebGL to be able to render it.  In this case, we create two
-//     // triangles from the quad indices
-
-//     // all vertices for the cube get the same colour
-//     var indices = [ a, b, c, a, c, d ];
-
-//     for ( var i = 0; i < indices.length; ++i ) {
-//         // add the vertices for the cube
-//         points.push( vertices[indices[i]]);
-//     }
-// }
 
 function drawCrossHairs() {
     // reset the transform matrices in the uniforms so that the crosshair doesn't move
