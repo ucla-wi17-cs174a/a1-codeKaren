@@ -1,15 +1,15 @@
 "use strict";
 
+// SET UP WEBGL AND HTML CANVAS
 var canvas;
 var gl;
 
-var NumVertices = 14;  // need 14 vertices to draw cube since using triangle strip
-var NumOutlinePoints = 24; 
-
 // INITIALIZE ARRAYS FOR POINTS, COLOURS, AND CROSSHAIRS
 var points = [];
+var NumVertices = 14;  // need 14 vertices to draw cube since using triangle strip
 
 var outlinePoints = [];
+var NumOutlinePoints = 24; 
 
 var vertices = [
     vec4( -0.5, -0.5, +0.5, 1.0 ),   // manually plan out the cube
@@ -34,7 +34,7 @@ var colors = [
     [ 1.0, 1.0, 1.0, 1.0 ]  // white
 ];
 
-var colourIndexOffset = 0;
+var colourIndexOffset = 0;  // indicates which colours to assign to which cubes
 
 var crosshairs = [
     [ 1.0, 0, 0, 1.0 ],
@@ -43,32 +43,32 @@ var crosshairs = [
     [ 0, -1.0, 0, 1.0 ]
 ];
 
-var xAxis = 0;
-var yAxis = 1;
-var zAxis = 2;
-
+// DECLARE VARIABLES FOR UNIFORM LOCATIONS
 var modelTransformMatrixLoc;
 var cameraTransformMatrixLoc;
 var perspectiveMatrixLoc;
 var currentColourLoc;
 
+// INITIALIZE ALL TRANSFORMATION MATRICES TO IDENTITY MATRIX
 var modelTransformMatrix = mat4();  // identity matrix
 var perspectiveMatrix = mat4();
 var cameraTransformMatrix = mat4();
-var resetCameraTransformMatrix = mat4();  // reset camera transforms
-var resetPerspectiveMatrix = mat4();  // reset perspective
+var resetCameraTransformMatrix = mat4();  // use to reset camera transforms
+var resetPerspectiveMatrix = mat4();  // use to reset perspective projection matrix
 var tempModelTransform = mat4();  // use to generate transformations and rotations for each cube
 
+// SET UP BUFFER AND ATTRIBUTES
 var vPosition;
 var vBuffer;
 var vCrossHairBuffer;
 var vOutlineBuffer;
 
-var i = 0;  // used for each iteration for translation
+// INITIALIZE MISCELLANEOUS VARIABLES 
 var currentFOV = 50;   // adjust this later for narrow or width FOV
 var displayCrossHair = 0;  // Boolean to determine whether or not to display crosshair on screen
 var currDegrees = 0;  // indicate current degree for the azimuth of the camera heading
 
+// INITIALIZE VARIABLES NEEDED TO ROTATE AND SCALE CUBES CONTINUOUSLY
 var rotationStep = 20/60 * 360; // need to do 20 rpm, and 360 degrees per rotation = 120 degrees per second
 var currRotation = 0.0;  // current rotation of the cubes around the y-axis
 var prevTime = 0;   // use to calculate time difference between calls to render so can rotate cubes
@@ -77,6 +77,7 @@ var isGrowingCube = 1;  // determine whether or not to scale larger or smaller a
 
 window.onload = function init()   // this is like int main() in C
 {
+    // SET UP WEBGL 
     canvas = document.getElementById( "gl-canvas" );
 
     gl = WebGLUtils.setupWebGL( canvas );  
@@ -86,14 +87,13 @@ window.onload = function init()   // this is like int main() in C
     gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
 
     gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);  
+    gl.depthFunc(gl.LEQUAL);  // make sure that the outlines draw outside of the cubes since they have same z values
 
     // LOAD SHADERS AND INITIALIZE ATTRIBUTE BUFFERS
-
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );  // compile and link shaders, then return a pointer to the program
     gl.useProgram( program ); 
 
-    // BUFFER FOR THE CUBE POINTS
+    // BUFFER AND ATTRIBUTE FOR THE CUBE POINTS
     vBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
     gl.bufferData( gl.ARRAY_BUFFER, flatten(points), gl.DYNAMIC_DRAW );
@@ -102,7 +102,7 @@ window.onload = function init()   // this is like int main() in C
     gl.vertexAttribPointer( vPosition, 4, gl.FLOAT, false, 0, 0 );  // tell attribute how to get data out of buffer and binds current buffer to the attribute; vPosition will always be bound to vBuffer now
     gl.enableVertexAttribArray( vPosition );
 
-    // BUFFER FOR THE CROSSHAIRS
+    // BUFFER AND ATTRIBUTE FOR THE CROSSHAIRS
     vCrossHairBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, vCrossHairBuffer );
     gl.bufferData( gl.ARRAY_BUFFER, flatten(crosshairs), gl.DYNAMIC_DRAW );
@@ -111,7 +111,7 @@ window.onload = function init()   // this is like int main() in C
     gl.vertexAttribPointer( vPosition, 4, gl.FLOAT, false, 0, 0 );  
     gl.enableVertexAttribArray( vPosition );
 
-    // BUFFER FOR THE CUBE OUTLINE POINTS
+    // BUFFER AND ATTRIBUTES FOR THE CUBE OUTLINE POINTS
     vOutlineBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, vOutlineBuffer);
     gl.bufferData( gl.ARRAY_BUFFER, flatten(outlinePoints), gl.DYNAMIC_DRAW );
@@ -127,7 +127,6 @@ window.onload = function init()   // this is like int main() in C
     currentColourLoc = gl.getUniformLocation(program, "currentColour");
 
     // INITIALIZE THE TRANSFORMATION MATRICES    
-
     // do scaling inside temp variable if you don't want to mess up the whole coordinate axes
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(modelTransformMatrix)); 
 
@@ -186,12 +185,12 @@ window.onload = function init()   // this is like int main() in C
             case 110:  // 'n' key 
                 console.log("n key");
                 // change the FOV of the projection but keep the correct heading
-                perspectiveMatrix = mult(perspective(--currentFOV, 1, 0, 100), rotateY(-1*currDegrees));
+                perspectiveMatrix = mult(perspective(--currentFOV, 1, 0, 100), quarternionRotate(-1*currDegrees, vec3(0, 1, 0)));
                 gl.uniformMatrix4fv(perspectiveMatrixLoc, false, flatten(perspectiveMatrix));
                 break;
             case 119:  // 'w' key
                 console.log("w key");
-                perspectiveMatrix = mult(perspective(++currentFOV, 1, 0, 100), rotateY(-1*currDegrees));
+                perspectiveMatrix = mult(perspective(++currentFOV, 1, 0, 100), quarternionRotate(-1*currDegrees, vec3(0, 1, 0)));
                 gl.uniformMatrix4fv(perspectiveMatrixLoc, false, flatten(perspectiveMatrix));
                 break; 
             case 43:  // '+' key
@@ -216,7 +215,7 @@ window.onload = function init()   // this is like int main() in C
                 // currDegrees has opposite sign of rotation degree because we are facing in opposite direction to rotation
                 currDegrees -= 4;
                 console.log("LEFT");
-                perspectiveMatrix = mult(perspectiveMatrix, rotateY(4));
+                perspectiveMatrix = mult(perspectiveMatrix, quarternionRotate(4, vec3(0, 1, 0)));
                 gl.uniformMatrix4fv(perspectiveMatrixLoc, false, flatten(perspectiveMatrix));
                 break;
             // move position of the Y-axis up by 0.25 units
@@ -229,7 +228,7 @@ window.onload = function init()   // this is like int main() in C
             case 39:  // RIGHT key
                 currDegrees += 4;
                 console.log("RIGHT");
-                perspectiveMatrix = mult(perspectiveMatrix, rotateY(-4));
+                perspectiveMatrix = mult(perspectiveMatrix, quarternionRotate(-4, vec3(0, 1, 0)));
                 gl.uniformMatrix4fv(perspectiveMatrixLoc, false, flatten(perspectiveMatrix));
                 break;
             // move position of the Y-axis down by 0.25 units
@@ -308,7 +307,7 @@ function drawCube() {
     gl.bufferData( gl.ARRAY_BUFFER, flatten(points), gl.DYNAMIC_DRAW );
     gl.vertexAttribPointer( vPosition, 4, gl.FLOAT, false, 0, 0 );  // tell attribute how to get data out of buffer and binds current buffer to the attribute; vPosition will always be bound to vBuffer now
     gl.enableVertexAttribArray( vPosition );
-    gl.drawArrays( gl.TRIANGLE_STRIP, 0, NumVertices );
+    gl.drawArrays( gl.TRIANGLE_STRIP, 0, NumVertices );  // draw cube using triangle strip
 }
 
 function drawOutline() {
@@ -339,11 +338,35 @@ function scaleAndRotateCube() {
             isGrowingCube = 1;
         }
     }
-    tempModelTransform = mult(tempModelTransform, rotateY(currRotation));
+    // rotate and scale the cube continuously
+    tempModelTransform = mult(tempModelTransform, quarternionRotate(currRotation, vec3(0, 1, 0)));
+}
+
+function quarternionRotate(angle, axis) {
+    // ignore the 4th element of the axis vector when normalizing
+    var unitRotationAxis = normalize(vec4(axis[0], axis[1], axis[2], 1.0), 1);
+    var angleRad = radians(angle);
+
+    // compute w, x, y, z for the quarternion
+    var w = Math.cos(angleRad/2);
+    var x = Math.sin(angleRad/2) * unitRotationAxis[0];
+    var y = Math.sin(angleRad/2) * unitRotationAxis[1];
+    var z = Math.sin(angleRad/2) * unitRotationAxis[2];
+
+    // compute the result for the rotation by quarternions
+    var result = mat4(
+        vec4( 1 - 2*(Math.pow(y, 2) + Math.pow(z, 2)), 2*(x*y - w*z), 2*(x*z + w*y), 0.0 ),
+        vec4( 2*(x*y + w*z), 1 - 2*(Math.pow(x,2) + Math.pow(z, 2)), 2*(y*z - w*x), 0.0 ),
+        vec4( 2*(x*z - w*y), 2*(y*z + w*x), 1 - 2*(Math.pow(x,2) + Math.pow(y,2)),   0.0 ),
+        vec4( 0.0, 0.0, 0.0, 1.0 )
+    );
+    // must return inverse so that rotation goes in the correct direction
+    return inverse(result);
 }
 
 function render(timeStamp) 
 {
+    // clear colour buffer and depth buffer
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // rotate the cubes by a constant speed
@@ -352,6 +375,7 @@ function render(timeStamp)
     currRotation = (currRotation + (timeDiff * rotationStep)) % 360;
     prevTime = timeStamp;  // set the previous time for the next iteration equal to the current time
 
+    // cube #1
     // order of transformations: rotate, scale, then translate (since you read from to top to get matrix transformation order)
     tempModelTransform = mult(modelTransformMatrix, translate(10, 10, 10));
     scaleAndRotateCube();
@@ -366,6 +390,7 @@ function render(timeStamp)
     // draw the outline
     drawOutline();
 
+    // cube #2
     tempModelTransform = mult(modelTransformMatrix, translate(10, 10, -10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
@@ -374,6 +399,7 @@ function render(timeStamp)
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
+    // cube #3
     tempModelTransform = mult(modelTransformMatrix, translate(10, -10, 10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
@@ -382,6 +408,7 @@ function render(timeStamp)
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
+    // cube #4
     tempModelTransform = mult(modelTransformMatrix, translate(10, -10, -10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
@@ -390,6 +417,7 @@ function render(timeStamp)
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
+    // cube #5
     tempModelTransform = mult(modelTransformMatrix, translate(-10, 10, 10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
@@ -398,6 +426,7 @@ function render(timeStamp)
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
+    // cube #6
     tempModelTransform = mult(modelTransformMatrix, translate(-10, 10, -10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
@@ -406,6 +435,7 @@ function render(timeStamp)
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
+    // cube #7
     tempModelTransform = mult(modelTransformMatrix, translate(-10, -10, 10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
@@ -414,6 +444,7 @@ function render(timeStamp)
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
+    // cube #8
     tempModelTransform = mult(modelTransformMatrix, translate(-10, -10, -10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
@@ -427,5 +458,6 @@ function render(timeStamp)
         drawCrossHairs();
     }
 
+    // render again (repeatedly as long as program is running)
     requestAnimationFrame( render );
 }

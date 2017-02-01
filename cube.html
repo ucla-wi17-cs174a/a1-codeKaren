@@ -15,7 +15,9 @@ uniform vec3 theta;
 
 void main()
 {
+    // set the current colour
     fColor = currentColour;
+    // apply the transformations
     gl_Position = perspectiveMatrix * cameraTransformMatrix * modelTransformMatrix * vPosition; 
     gl_Position.z = -gl_Position.z;
 }
@@ -30,6 +32,7 @@ varying vec4 fColor;
 void
 main()
 {
+    // set the fragment's colour
     gl_FragColor = fColor;
 }
 </script>
