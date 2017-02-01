@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute vec4 vPosition;
+varying vec4 fColor;
+
+uniform vec4 currentColour;
+uniform mat4 modelTransformMatrix;
+uniform mat4 cameraTransformMatrix;
+uniform mat4 perspectiveMatrix;
+
+uniform vec3 theta;
+
+void main()
+{
+    // Compute the sines and cosines of theta for each of
+    //   the three axes in one computation.
+    vec3 angles = radians( theta );
+    vec3 c = cos( angles );
+    vec3 s = sin( angles );
+
+    //fColor = vColor;
+    fColor = currentColour;
+    gl_Position = perspectiveMatrix * cameraTransformMatrix * modelTransformMatrix * vPosition; 
+    gl_Position.z = -gl_Position.z;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+precision mediump float;
+
+varying vec4 fColor;
+
+void
+main()
+{
+    gl_FragColor = fColor;
+}
+</script>
+
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="initShaders.js"></script>
+<script type="text/javascript" src="MV.js"></script>
+<script type="text/javascript" src="cube.js"></script>
+
+<body>
+<canvas id="gl-canvas" width="960" height="960">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+<br/>
+
+</body>
+</html>
