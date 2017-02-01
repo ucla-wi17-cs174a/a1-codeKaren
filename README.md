@@ -2,6 +2,26 @@ CS 174A Assignment #1
 Karen Li, UID: 204563235
 ========================
 
+Included Files
+==============
+MV.js -- functions to manipulate matrices
+README.md -- documentation for project
+cube.html -- html file containing shaders 
+cube.js -- code to draw cubes and implement all features
+initShaders.js --  function to initialize shaders
+webgl-utils.js -- functions needed by WebGL
+
+MV.js, initShaders.js, and webgl-utils.js were supplied by Edward Angel's "Interactive Computer Graphics" textbook.
+
+Additional Information
+======================
+
+I completed all of the requirements as well as all of the extra credit tasks. For extra credit #1, in order to instance each of the eight cubes from the same geometry data, I use the same vertex array for each cube and then translated each to the correct positions before drawing them. For extra credit #2, I used fourteen vertices to implement the cube as a single triangle strip. For extra credit #3, I implemented a rotation matrix using quarternions. For extra credit #4, I rotated and scaled each cube individually so they grew and shrank in size continuously while rotating in a synchronized fashion.
+
+To run my program, include all of the files in this repository in a single folder, and open "cube.html" in a browser. 
+
+Please grade tagged version v1.4. 
+
 Requirements
 ============
  
