@@ -15,13 +15,6 @@ uniform vec3 theta;
 
 void main()
 {
-    // Compute the sines and cosines of theta for each of
-    //   the three axes in one computation.
-    vec3 angles = radians( theta );
-    vec3 c = cos( angles );
-    vec3 s = sin( angles );
-
-    //fColor = vColor;
     fColor = currentColour;
     gl_Position = perspectiveMatrix * cameraTransformMatrix * modelTransformMatrix * vPosition; 
     gl_Position.z = -gl_Position.z;

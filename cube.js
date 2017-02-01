@@ -34,6 +34,8 @@ var colors = [
     [ 1.0, 1.0, 1.0, 1.0 ]  // white
 ];
 
+var colourIndexOffset = 0;
+
 var crosshairs = [
     [ 1.0, 0, 0, 1.0 ],
     [ -1.0, 0, 0, 1.0 ],
@@ -41,16 +43,10 @@ var crosshairs = [
     [ 0, -1.0, 0, 1.0 ]
 ];
 
-var colourIndexOffset = 0;
-
 var xAxis = 0;
 var yAxis = 1;
 var zAxis = 2;
 
-var axis = 0;
-var theta = [ 0, 0, 0 ];
-
-var thetaLoc;
 var modelTransformMatrixLoc;
 var cameraTransformMatrixLoc;
 var perspectiveMatrixLoc;
@@ -59,8 +55,9 @@ var currentColourLoc;
 var modelTransformMatrix = mat4();  // identity matrix
 var perspectiveMatrix = mat4();
 var cameraTransformMatrix = mat4();
-var resetCameraTransformMatrix = mat4(); 
-var resetPerspectiveMatrix = mat4();
+var resetCameraTransformMatrix = mat4();  // reset camera transforms
+var resetPerspectiveMatrix = mat4();  // reset perspective
+var tempModelTransform = mat4();  // use to generate transformations and rotations for each cube
 
 var vPosition;
 var vBuffer;
@@ -70,11 +67,13 @@ var vOutlineBuffer;
 var i = 0;  // used for each iteration for translation
 var currentFOV = 50;   // adjust this later for narrow or width FOV
 var displayCrossHair = 0;  // Boolean to determine whether or not to display crosshair on screen
-var currDegrees = 0;
+var currDegrees = 0;  // indicate current degree for the azimuth of the camera heading
 
-var eye;
-var at;
-var up;
+var rotationStep = 20/60 * 360; // need to do 20 rpm, and 360 degrees per rotation = 120 degrees per second
+var currRotation = 0.0;  // current rotation of the cubes around the y-axis
+var prevTime = 0;   // use to calculate time difference between calls to render so can rotate cubes
+var currScale = 1;  // determine whether or not to scale larger or smaller at a given iteration
+var isGrowingCube = 1;  // determine whether or not to scale larger or smaller at a given iteration
 
 window.onload = function init()   // this is like int main() in C
 {
@@ -122,7 +121,6 @@ window.onload = function init()   // this is like int main() in C
     gl.enableVertexAttribArray( vPosition );
 
     // SET VALUES FOR UNIFORMS FOR SHADERS
-    thetaLoc = gl.getUniformLocation(program, "theta"); // get memory address of theta on the GPU
     modelTransformMatrixLoc = gl.getUniformLocation(program, "modelTransformMatrix"); 
     cameraTransformMatrixLoc = gl.getUniformLocation(program, "cameraTransformMatrix"); 
     perspectiveMatrixLoc = gl.getUniformLocation(program, "perspectiveMatrix");
@@ -250,7 +248,7 @@ window.onload = function init()   // this is like int main() in C
     generateCubeOutline();
 
     // start drawing cubes and repeatedly call this function
-    render();
+    render(0);
 }
 
 // generate the vertices to fill in the points array
@@ -338,17 +336,43 @@ function drawOutline() {
     gl.drawArrays( gl.LINES, 0, NumOutlinePoints );
 }
 
-function render() 
+function scaleAndRotateCube() {
+    if (isGrowingCube == 1) {
+        // scale the cubes larger
+        currScale += 0.001;
+        tempModelTransform = mult(tempModelTransform, scalem(currScale, currScale, currScale));
+        // if the cubes become too big
+        if (currScale >= 1.2) {
+            isGrowingCube = 0;
+        }
+    }
+    else {
+        // scale the cubes smaller
+        currScale -= 0.001;
+        tempModelTransform = mult(tempModelTransform, scalem(currScale, currScale, currScale));
+        // if the cubes become too small
+        if (currScale <= 1) {
+            isGrowingCube = 1;
+        }
+    }
+    tempModelTransform = mult(tempModelTransform, rotateY(currRotation));
+}
+
+function render(timeStamp) 
 {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    theta[axis] += 2.0;
-    gl.uniform3fv(thetaLoc, theta);
-    i += 0.02;
-    var stack = [];  // stack of transformations
+    // rotate the cubes by a constant speed
+    // first, get the time difference since the last call to render
+    var timeDiff = (timeStamp - prevTime)/1000;  // must divide by 1000 since measured in milliseconds
+    currRotation = (currRotation + (timeDiff * rotationStep)) % 360;
+    prevTime = timeStamp;  // set the previous time for the next iteration equal to the current time
 
+    // order of transformations: rotate, scale, then translate (since you read from to top to get matrix transformation order)
+    tempModelTransform = mult(modelTransformMatrix, translate(10, 10, 10));
+    scaleAndRotateCube();
     // apply the correct matrix transformation to the points for the each cube, then draw cube and outline 
-    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(mult(modelTransformMatrix, translate(10, 10, 10))));
+    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform));
     // change the colour for the cube
     gl.uniform4fv(currentColourLoc, colors[colourIndexOffset % 8]); 
     // draw the cube 
@@ -358,43 +382,57 @@ function render()
     // draw the outline
     drawOutline();
 
-    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(mult(modelTransformMatrix, translate(10, 10, -10)))); 
+    tempModelTransform = mult(modelTransformMatrix, translate(10, 10, -10));
+    scaleAndRotateCube();
+    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 1) % 8]);
     drawCube();
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
-    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(mult(modelTransformMatrix, translate(10, -10, 10))));
+    tempModelTransform = mult(modelTransformMatrix, translate(10, -10, 10));
+    scaleAndRotateCube();
+    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 2) % 8]);
     drawCube();
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
-    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(mult(modelTransformMatrix, translate(10, -10, -10)))); 
+    tempModelTransform = mult(modelTransformMatrix, translate(10, -10, -10));
+    scaleAndRotateCube();
+    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 3) % 8]);
     drawCube();
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
-    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(mult(modelTransformMatrix, translate(-10, 10, 10))));
+    tempModelTransform = mult(modelTransformMatrix, translate(-10, 10, 10));
+    scaleAndRotateCube();
+    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 4) % 8]); 
     drawCube();
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
-    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(mult(modelTransformMatrix, translate(-10, 10, -10)))); 
+    tempModelTransform = mult(modelTransformMatrix, translate(-10, 10, -10));
+    scaleAndRotateCube();
+    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 5) % 8]);
     drawCube();
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
-    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(mult(modelTransformMatrix, translate(-10, -10, 10))));
+    tempModelTransform = mult(modelTransformMatrix, translate(-10, -10, 10));
+    scaleAndRotateCube();
+    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 6) % 8]);
     drawCube();
     gl.uniform4fv(currentColourLoc, colors[8]); 
     drawOutline();
 
-    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(mult(modelTransformMatrix, translate(-10, -10, -10))));
+    tempModelTransform = mult(modelTransformMatrix, translate(-10, -10, -10));
+    scaleAndRotateCube();
+    gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 7) % 8]);
     drawCube();
     gl.uniform4fv(currentColourLoc, colors[8]); 
