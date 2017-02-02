@@ -20,7 +20,7 @@ I completed all of the requirements as well as all of the extra credit tasks. Fo
 
 To run my program, include all of the files in this repository in a single folder, and open "cube.html" in a browser. 
 
-Please grade tagged version v1.5. 
+Please grade tagged version v1.6. 
 
 Requirements
 ============
