@@ -87,7 +87,6 @@ window.onload = function init()   // this is like int main() in C
     gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
 
     gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);  // make sure that the outlines draw outside of the cubes since they have same z values
 
     // LOAD SHADERS AND INITIALIZE ATTRIBUTE BUFFERS
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );  // compile and link shaders, then return a pointer to the program
@@ -127,7 +126,6 @@ window.onload = function init()   // this is like int main() in C
     currentColourLoc = gl.getUniformLocation(program, "currentColour");
 
     // INITIALIZE THE TRANSFORMATION MATRICES    
-    // do scaling inside temp variable if you don't want to mess up the whole coordinate axes
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(modelTransformMatrix)); 
 
     // apply camera transformations
@@ -135,10 +133,11 @@ window.onload = function init()   // this is like int main() in C
     // in reality, since we are taking the inverse matrix, we are moving all the objects in the -z direction
     cameraTransformMatrix = mult(cameraTransformMatrix, inverse(translate(0, 0, 50)));
     gl.uniformMatrix4fv(cameraTransformMatrixLoc, false, flatten(cameraTransformMatrix));
+
     resetCameraTransformMatrix = cameraTransformMatrix;  // save the original value so we can reset the camera transform later
 
     // apply symmetric perspective projection
-    perspectiveMatrix = perspective(currentFOV, 1, 0, 100);
+    perspectiveMatrix = perspective(currentFOV, 1, 1, 100);
     gl.uniformMatrix4fv(perspectiveMatrixLoc, false, flatten(perspectiveMatrix));
     resetPerspectiveMatrix = perspectiveMatrix;  // save the original value of the perspective matrix so we can reset it later for the cross hairs
 
@@ -185,12 +184,12 @@ window.onload = function init()   // this is like int main() in C
             case 110:  // 'n' key 
                 console.log("n key");
                 // change the FOV of the projection but keep the correct heading
-                perspectiveMatrix = mult(perspective(--currentFOV, 1, 0, 100), quarternionRotate(-1*currDegrees, vec3(0, 1, 0)));
+                perspectiveMatrix = mult(perspective(--currentFOV, 1, 1, 100), quarternionRotate(-1*currDegrees, vec3(0, 1, 0)));
                 gl.uniformMatrix4fv(perspectiveMatrixLoc, false, flatten(perspectiveMatrix));
                 break;
             case 119:  // 'w' key
                 console.log("w key");
-                perspectiveMatrix = mult(perspective(++currentFOV, 1, 0, 100), quarternionRotate(-1*currDegrees, vec3(0, 1, 0)));
+                perspectiveMatrix = mult(perspective(++currentFOV, 1, 1, 100), quarternionRotate(-1*currDegrees, vec3(0, 1, 0)));
                 gl.uniformMatrix4fv(perspectiveMatrixLoc, false, flatten(perspectiveMatrix));
                 break; 
             case 43:  // '+' key
@@ -256,7 +255,6 @@ function generateCube() {
     var length = vertexTriangleStripOrder.length;
     for (var i = 0; i < length; ++i) {
         points.push(vertices[vertexTriangleStripOrder[i]]);
-        console.log(points[i]);
     }
 }
 
@@ -316,6 +314,7 @@ function drawOutline() {
     gl.bufferData( gl.ARRAY_BUFFER, flatten(outlinePoints), gl.DYNAMIC_DRAW );
     gl.vertexAttribPointer( vPosition, 4, gl.FLOAT, false, 0, 0 );  // tell attribute how to get data out of buffer and binds current buffer to the attribute; vPosition will always be bound to vBuffer now
     gl.enableVertexAttribArray( vPosition );
+    gl.uniform4fv(currentColourLoc, colors[8]);  // make the outline white 
     gl.drawArrays( gl.LINES, 0, NumOutlinePoints );
 }
 
@@ -379,79 +378,70 @@ function render(timeStamp)
     // order of transformations: rotate, scale, then translate (since you read from to top to get matrix transformation order)
     tempModelTransform = mult(modelTransformMatrix, translate(10, 10, 10));
     scaleAndRotateCube();
-    // apply the correct matrix transformation to the points for the each cube, then draw cube and outline 
+    // apply the correct matrix transformation to the points for each cube, then draw cube and outline 
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform));
+    // draw the outline
+    drawOutline();
     // change the colour for the cube
     gl.uniform4fv(currentColourLoc, colors[colourIndexOffset % 8]); 
     // draw the cube 
     drawCube();
-    // make the outline white 
-    gl.uniform4fv(currentColourLoc, colors[8]); 
-    // draw the outline
-    drawOutline();
 
     // cube #2
     tempModelTransform = mult(modelTransformMatrix, translate(10, 10, -10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
+    drawOutline();
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 1) % 8]);
     drawCube();
-    gl.uniform4fv(currentColourLoc, colors[8]); 
-    drawOutline();
 
     // cube #3
     tempModelTransform = mult(modelTransformMatrix, translate(10, -10, 10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
+    drawOutline();
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 2) % 8]);
     drawCube();
-    gl.uniform4fv(currentColourLoc, colors[8]); 
-    drawOutline();
 
     // cube #4
     tempModelTransform = mult(modelTransformMatrix, translate(10, -10, -10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
+    drawOutline();
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 3) % 8]);
     drawCube();
-    gl.uniform4fv(currentColourLoc, colors[8]); 
-    drawOutline();
 
     // cube #5
     tempModelTransform = mult(modelTransformMatrix, translate(-10, 10, 10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
+    drawOutline();
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 4) % 8]); 
     drawCube();
-    gl.uniform4fv(currentColourLoc, colors[8]); 
-    drawOutline();
 
     // cube #6
     tempModelTransform = mult(modelTransformMatrix, translate(-10, 10, -10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
+    drawOutline();
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 5) % 8]);
     drawCube();
-    gl.uniform4fv(currentColourLoc, colors[8]); 
-    drawOutline();
 
     // cube #7
     tempModelTransform = mult(modelTransformMatrix, translate(-10, -10, 10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
+    drawOutline();
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 6) % 8]);
     drawCube();
-    gl.uniform4fv(currentColourLoc, colors[8]); 
-    drawOutline();
 
     // cube #8
     tempModelTransform = mult(modelTransformMatrix, translate(-10, -10, -10));
     scaleAndRotateCube();
     gl.uniformMatrix4fv(modelTransformMatrixLoc, false, flatten(tempModelTransform)); 
+    drawOutline();
     gl.uniform4fv(currentColourLoc, colors[(colourIndexOffset + 7) % 8]);
     drawCube();
-    gl.uniform4fv(currentColourLoc, colors[8]); 
-    drawOutline();
 
     // draw the crosshairs using two line objects
     if (displayCrossHair == 1) {

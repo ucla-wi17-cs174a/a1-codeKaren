@@ -19,7 +19,6 @@ void main()
     fColor = currentColour;
     // apply the transformations
     gl_Position = perspectiveMatrix * cameraTransformMatrix * modelTransformMatrix * vPosition; 
-    gl_Position.z = -gl_Position.z;
 }
 </script>
 
