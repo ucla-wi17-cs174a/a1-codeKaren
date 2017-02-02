@@ -5,10 +5,15 @@ CS 174A Assignment #1
 Included Files
 ==============
 MV.js -- functions to manipulate matrices
+
 README.md -- documentation for project
+
 cube.html -- html file containing shaders 
+
 cube.js -- code to draw cubes and implement all features
+
 initShaders.js --  function to initialize shaders
+
 webgl-utils.js -- functions needed by WebGL
 
 MV.js, initShaders.js, and webgl-utils.js were supplied by Edward Angel's "Interactive Computer Graphics" textbook.
@@ -20,7 +25,7 @@ I completed all of the requirements as well as all of the extra credit tasks. Fo
 
 To run my program, include all of the files in this repository in a single folder, and open "cube.html" in a browser. 
 
-Please grade tagged version v1.6. 
+Please grade tagged version v1.7. 
 
 Requirements
 ============
